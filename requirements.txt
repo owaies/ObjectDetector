@@ -1,0 +1,11 @@
+flask
+ultralytics
+opencv-python-headless
+gTTS
+pi-heif
+numpy
+Pillow
+transformers
+torch
+Flask-Cors
+werkzeug
