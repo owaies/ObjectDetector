@@ -5,88 +5,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detection Results</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        html, body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-        body {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #fff;
-            padding-bottom: 50px;
-        }
-        .result-img {
-            width: 100%;
-            height: auto;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            margin-bottom: 1rem;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-        }
-        .card {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 15px;
-            color: #fff;
-        }
-        .list-group-item {
-            background-color: transparent;
-            border-color: rgba(255, 255, 255, 0.2);
-            color: #fff;
-            font-weight: 500;
-        }
-        .badge {
-            font-size: 1rem;
-        }
-        .btn-success, .btn-primary {
-            font-weight: 600;
-            padding: 10px 20px;
-            transition: all 0.3s ease;
-        }
-        .btn-success:hover, .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-        /* Animation */
-        .animated-card {
-            animation: fadeIn 0.8s ease-out forwards;
-        }
-        .animated-img-1 {
-            animation: fadeIn 1s ease-out 0.2s forwards;
-            opacity: 0;
-        }
-        .animated-img-2 {
-            animation: fadeIn 1s ease-out 0.4s forwards;
-            opacity: 0;
-        }
+        body { background-color: #f8f9fa; font-family: 'Poppins', sans-serif; padding-bottom: 50px; }
+        h1, h3 { color: #0d6efd; font-weight: 600; }
+        .media-container { width: 100%; border-radius: 0.75rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15); margin-bottom: 1rem; border: 1px solid #dee2e6; overflow: hidden; }
+        .media-container img, .media-container video { width: 100%; height: auto; display: block; }
+        .card { border-radius: 0.75rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1); }
+        .btn { font-weight: 500; padding: 10px 20px; }
+        .vqa-answer { background-color: #e9ecef; border-left: 5px solid #0d6efd; padding: 1rem; font-style: italic; border-radius: 0.25rem; }
     </style>
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="text-center mb-4">Detection Results</h1>
+        <h1 class="text-center mb-5">Analysis Results</h1>
 
-        {% if audio_url %}
-            <audio autoplay>
-                <source src="{{ audio_url }}" type="audio/mpeg">
-                Your browser does not support the audio element.
-            </audio>
-        {% endif %}
-        
-        <div class="card mt-4 mb-5 animated-card">
-            <div class="card-header bg-transparent border-bottom-0">
-                <h3 class="mb-0">Detection Summary</h3>
+        <!-- REMOVED the <audio> tag -->
+
+        <div class="row">
+            <div class="col-md-6 text-center mb-4">
+                <h3>Input</h3>
+                <div class="media-container">
+                    {% if is_video %}
+                        <video controls muted playsinline src="{{ input_url }}"></video>
+                    {% else %}
+                        <img src="{{ input_url }}" alt="Input Media">
+                    {% endif %}
+                </div>
             </div>
+            <div class="col-md-6 text-center mb-4">
+                <h3>Output</h3>
+                <div class="media-container">
+                     {% if is_video %}
+                        <video controls autoplay muted playsinline src="{{ output_url }}"></video>
+                    {% else %}
+                        <img id="output-image" src="{{ output_url }}" alt="Output Media">
+                    {% endif %}
+                </div>
+                <a id="download-link" href="{{ output_url }}" download class="btn btn-success btn-lg mt-2">Download Output</a>
+            </div>
+        </div>
+
+        <!-- Visual Question Answering Card -->
+        {% if not is_video %}
+        <div class="card mt-4">
+            <div class="card-header"><h3 class="mb-0 fs-5">Ask a Question About the Image</h3></div>
+            <div class="card-body">
+                <div class="input-group">
+                    <input type="text" id="vqa-question" class="form-control" placeholder="e.g., What color is the car?">
+                    <button id="vqa-ask-btn" class="btn btn-primary">Ask</button>
+                </div>
+                <div id="vqa-answer-area" class="mt-3" style="min-height: 50px;"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card mt-4">
+            <div class="card-header"><h3 class="mb-0 fs-5">Detection Summary</h3></div>
             <ul class="list-group list-group-flush">
                 {% if detection_summary %}
                     {% for object, count in detection_summary.items() %}
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             {{ object.replace('_', ' ').title() }}
-                            <span class="badge bg-light text-dark rounded-pill">{{ count }}</span>
+                            <span class="badge bg-primary rounded-pill">
+                                {% if count == 'found' %} Found {% else %} {{ count }} {% endif %}
+                            </span>
                         </li>
                     {% endfor %}
                 {% else %}
@@ -95,23 +78,77 @@
             </ul>
         </div>
 
-        <div class="row">
-            <div class="col-md-6 text-center mb-4 animated-img-1">
-                <h3>Input Image</h3>
-                <img src="{{ input_image_url }}" alt="Input Image" class="result-img">
-            </div>
-            <div class="col-md-6 text-center mb-4 animated-img-2">
-                <h3>Output Image</h3>
-                <img src="{{ output_image_url }}" alt="Output Image" class="result-img">
-                <a href="{{ output_image_url }}" download class="btn btn-success btn-lg mt-2">
-                    Download Output
-                </a>
-            </div>
-        </div>
-
-        <div class="text-center mt-4">
-            <a href="/" class="btn btn-light btn-lg">Detect Another Image</a>
+        <div class="text-center mt-5">
+            <a href="/" class="btn btn-secondary btn-lg">Analyze Another File</a>
         </div>
     </div>
+
+    <script>
+        // --- NEW: Function to speak text using the browser ---
+        function speak(text) {
+            try {
+                const utterance = new SpeechSynthesisUtterance(text);
+                window.speechSynthesis.speak(utterance);
+            } catch (error) {
+                console.error("Browser speech synthesis failed:", error);
+            }
+        }
+
+        // --- NEW: Speak the main announcement when the page loads ---
+        const mainAnnouncement = "{{ announcement_text or '' }}";
+        if (mainAnnouncement) {
+            speak(mainAnnouncement);
+        }
+
+        document.getElementById('vqa-ask-btn')?.addEventListener('click', async () => {
+            const question = document.getElementById('vqa-question').value;
+            const answerArea = document.getElementById('vqa-answer-area');
+            const askBtn = document.getElementById('vqa-ask-btn');
+            const imageFilename = "{{ input_filename }}"; 
+
+            if (!question) {
+                answerArea.innerHTML = `<p class="text-danger">Please enter a question.</p>`;
+                return;
+            }
+
+            askBtn.disabled = true;
+            answerArea.innerHTML = `<div class="d-flex align-items-center"><strong role="status">Answering...</strong><div class="spinner-border ms-auto" aria-hidden="true"></div></div>`;
+
+            try {
+                const response = await fetch('/vqa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question, image_filename: imageFilename })
+                });
+
+                if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+                const data = await response.json();
+                
+                if (data.answer) {
+                    answerArea.innerHTML = `<p class="vqa-answer"><strong>Answer:</strong> ${data.answer}</p>`;
+                    
+                    // --- NEW: Speak the VQA answer ---
+                    speak(data.answer);
+
+                    if (data.highlight_image_url) {
+                        const outputImage = document.getElementById('output-image');
+                        const downloadLink = document.getElementById('download-link');
+                        outputImage.src = data.highlight_image_url;
+                        downloadLink.href = data.highlight_image_url;
+                    }
+
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+
+            } catch (error) {
+                answerArea.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+            } finally {
+                askBtn.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
+
+
