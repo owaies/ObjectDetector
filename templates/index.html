@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO-World Object Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+        }
+        .container {
+            max-width: 700px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 15px;
+            color: #fff;
+        }
+        .form-label b {
+            font-weight: 600;
+        }
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+        }
+        .form-control::placeholder {
+            color: #ccc;
+        }
+        .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.3);
+            border-color: #fff;
+            box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+            color: #fff;
+        }
+        .btn-primary {
+            background-color: #6a11cb;
+            border-color: #6a11cb;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            padding: 12px;
+        }
+        .btn-primary:hover {
+            background-color: #2575fc;
+            border-color: #2575fc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        /* Custom file input */
+        .form-control[type="file"] {
+            color: #ccc;
+        }
+        .form-control[type="file"]::-webkit-file-upload-button {
+            background: #6a11cb;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+        }
+        .form-control[type="file"]::-webkit-file-upload-button:hover {
+            background: #2575fc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card p-4 p-md-5">
+            <h1 class="text-center mb-3">YOLO-World Detector 🌍</h1>
+            <p class="text-center text-light mb-4">Upload an image and tell the AI what to find. Separate multiple objects with commas.</p>
+            <form id="detection-form" action="/detect" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="image" class="form-label"><b>1. Choose an Image</b></label>
+                    <input type="file" class="form-control" id="image" name="image" required>
+                </div>
+                <div class="mb-4">
+                    <label for="objects" class="form-label"><b>2. What should I find?</b></label>
+                    <input type="text" class="form-control" id="objects" name="objects" placeholder="e.g., person, a red car, dog on grass" required>
+                </div>
+                <div class="d-grid">
+                    <button id="submit-btn" type="submit" class="btn btn-primary btn-lg">
+                        <span id="btn-text">Detect Objects</span>
+                        <span id="spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('detection-form').addEventListener('submit', function() {
+            var submitBtn = document.getElementById('submit-btn');
+            var btnText = document.getElementById('btn-text');
+            var spinner = document.getElementById('spinner');
+
+            // Disable button, show spinner, and change text
+            submitBtn.disabled = true;
+            btnText.textContent = 'Detecting...';
+            spinner.classList.remove('d-none');
+        });
+    </script>
+</body>
+</html>
