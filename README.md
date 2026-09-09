@@ -9,12 +9,23 @@
 </p>
 
 <p>
+  <a href="https://world-object-detector.netlify.app/"><strong>🌐 Live Website</strong></a> ·
   <a href="https://github.com/owaies/ObjectDetector">Repository</a> ·
   <a href="https://github.com/owaies/ObjectDetector/issues">Issues</a> ·
   <a href="https://github.com/owaies">Author</a>
 </p>
 
 </div>
+
+---
+
+## 🌐 Try it online
+
+### [🚀 Open AI Vision Suite](https://world-object-detector.netlify.app/)
+
+Use the deployed application directly in your browser:
+
+**https://world-object-detector.netlify.app/**
 
 ---
 
@@ -377,6 +388,6 @@ No license file is currently present in the repository. If you plan to distribut
 
 ### Built with Python, Flask, YOLO-World, BLIP, OpenCV & PyTorch 🧠👁️
 
-**[⭐ Star the repository](https://github.com/owaies/ObjectDetector)** if you find it useful.
+**[🌐 Try the Live Website](https://world-object-detector.netlify.app/)** · **[⭐ Star the repository](https://github.com/owaies/ObjectDetector)**
 
 </div>
