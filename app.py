@@ -1,4 +1,4 @@
-Import os
+import os
 import uuid
 import cv2
 import time
