@@ -67,7 +67,12 @@ def detect():
         if file.filename == '': return "No selected file", 400
 
         user_input = request.form.get('objects', '').lower().strip()
-        confidence_threshold = float(request.form.get('confidence', 0.25))
+        try:
+            confidence_threshold = float(request.form.get('confidence', 0.25))
+        except (TypeError, ValueError):
+            return 'Confidence must be a number between 0 and 1.', 400
+        if not 0.0 <= confidence_threshold <= 1.0:
+            return 'Confidence must be between 0 and 1.', 400
         box_color_hex = request.form.get('color', '#FFFF00')
         box_color_bgr = hex_to_bgr(box_color_hex)
         
