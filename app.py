@@ -34,9 +34,11 @@ print("All models loaded successfully.")
 
 
 def hex_to_bgr(hex_color):
-    """Converts a hex color string (#RRGGBB) to a BGR tuple."""
-    hex_color = hex_color.lstrip('#')
-    return tuple(int(hex_color[i:i+2], 16) for i in (4, 2, 0))
+    """Convert a #RRGGBB color string to an OpenCV BGR tuple."""
+    value = hex_color.lstrip('#')
+    if len(value) != 6 or any(ch not in '0123456789abcdefABCDEF' for ch in value):
+        raise ValueError('Color must be a 6-digit hexadecimal value')
+    return tuple(int(value[i:i+2], 16) for i in (4, 2, 0))
 
 def schedule_cleanup(paths, delay=900):
     """Deletes files in a background thread after 15 minutes."""
@@ -74,7 +76,10 @@ def detect():
         if not 0.0 <= confidence_threshold <= 1.0:
             return 'Confidence must be between 0 and 1.', 400
         box_color_hex = request.form.get('color', '#FFFF00')
-        box_color_bgr = hex_to_bgr(box_color_hex)
+        try:
+            box_color_bgr = hex_to_bgr(box_color_hex)
+        except ValueError as exc:
+            return str(exc), 400
         
         if user_input:
             target_objects = [item.strip() for item in user_input.split(',')]
