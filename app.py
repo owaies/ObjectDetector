@@ -173,7 +173,10 @@ def vqa():
         return jsonify({'error': 'Missing question or image filename.'}), 400
 
     try:
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], input_filename)
+        safe_filename = secure_filename(input_filename)
+        if not safe_filename or safe_filename != input_filename:
+            return jsonify({'error': 'Invalid image filename.'}), 400
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
         raw_image = Image.open(image_path).convert('RGB')
 
         inputs = vqa_processor(raw_image, question, return_tensors="pt")
