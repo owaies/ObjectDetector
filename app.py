@@ -15,6 +15,7 @@ from transformers import BlipProcessor, BlipForQuestionAnswering
 
 # --- Initialize App and Configure Folders ---
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 UPLOAD_FOLDER = 'static/uploads/'
 OUTPUT_FOLDER = 'static/outputs/'
 AUDIO_FOLDER = 'static/audio/'
