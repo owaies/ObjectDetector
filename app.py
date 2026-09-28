@@ -51,7 +51,7 @@ def schedule_cleanup(paths, delay=900):
                     os.remove(path)
             except Exception as e:
                 print(f"Error cleaning up file {path}: {e}")
-    threading.Thread(target=cleanup).start()
+    threading.Thread(target=cleanup, daemon=True).start()
 
 def is_video_file(filename):
     """Checks if a filename has a common video extension."""
