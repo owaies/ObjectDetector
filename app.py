@@ -15,6 +15,13 @@ from transformers import BlipProcessor, BlipForQuestionAnswering
 
 # --- Initialize App and Configure Folders ---
 app = Flask(__name__)
+
+@app.after_request
+def add_security_headers(response):
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    return response
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 UPLOAD_FOLDER = 'static/uploads/'
 OUTPUT_FOLDER = 'static/outputs/'
