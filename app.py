@@ -69,6 +69,11 @@ def is_video_file(filename):
 def index():
     return render_template('index.html')
 
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok', 'service': 'object-detector'})
+
 @app.route('/detect', methods=['POST'])
 def detect():
     try:
