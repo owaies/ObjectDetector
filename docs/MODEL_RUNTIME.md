@@ -5,6 +5,7 @@ The Flask application loads the YOLO-World detector and BLIP VQA model once when
 ## Request paths
 
 - `/` renders the browser application.
+- `/health` provides a lightweight process-health check for deployment probes.
 - `/detect` handles image and video object detection.
 - `/vqa` handles visual question answering.
 
