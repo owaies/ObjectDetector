@@ -100,6 +100,11 @@ def detect():
 
         unique_id = uuid.uuid4().hex
         original_filename = secure_filename(file.filename)
+        if not original_filename:
+            return "Invalid filename.", 400
+        allowed_image_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.heic', '.heif'}
+        if not is_video and os.path.splitext(original_filename)[1].lower() not in allowed_image_exts:
+            return "Unsupported image format.", 400
         input_filename = f"{unique_id}_{original_filename}"
         input_filepath = os.path.join(app.config['UPLOAD_FOLDER'], input_filename)
         file.save(input_filepath)
