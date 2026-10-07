@@ -103,6 +103,7 @@ def detect():
         if not original_filename:
             return "Invalid filename.", 400
         allowed_image_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.heic', '.heif'}
+        is_video = is_video_file(original_filename)
         if not is_video and os.path.splitext(original_filename)[1].lower() not in allowed_image_exts:
             return "Unsupported image format.", 400
         input_filename = f"{unique_id}_{original_filename}"
@@ -110,7 +111,6 @@ def detect():
         file.save(input_filepath)
 
         detection_counts = defaultdict(int)
-        is_video = is_video_file(original_filename)
         output_filename = f"{unique_id}_output.mp4" if is_video else f"{unique_id}_output.jpg"
         output_filepath = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
 
