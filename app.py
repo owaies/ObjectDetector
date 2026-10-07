@@ -117,7 +117,12 @@ def detect():
         if is_video:
             cap = cv2.VideoCapture(input_filepath)
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            fps = int(cap.get(cv2.CAP_PROP_FPS)); width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)); height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            if fps <= 0 or width <= 0 or height <= 0:
+                cap.release()
+                return "Error: Could not read video metadata.", 400
             out = cv2.VideoWriter(output_filepath, fourcc, fps, (width, height))
             if not out.isOpened(): return "Error: Could not initialize video writer.", 500
             while cap.isOpened():
