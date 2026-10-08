@@ -207,7 +207,7 @@ def vqa():
         image_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
         raw_image = Image.open(image_path).convert('RGB')
 
-        inputs = vqa_processor(raw_image, question, return_tensors="pt")
+        inputs = vqa_processor(raw_image, question.strip(), return_tensors="pt")
         out = vqa_model.generate(**inputs)
         answer = vqa_processor.decode(out[0], skip_special_tokens=True)
 
