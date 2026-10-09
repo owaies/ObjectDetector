@@ -124,7 +124,11 @@ def detect():
                 cap.release()
                 return "Error: Could not read video metadata.", 400
             out = cv2.VideoWriter(output_filepath, fourcc, fps, (width, height))
-            if not out.isOpened(): return "Error: Could not initialize video writer.", 500
+            if not out.isOpened():
+                cap.release()
+                if os.path.exists(output_filepath):
+                    os.remove(output_filepath)
+                return "Error: Could not initialize video writer.", 500
             while cap.isOpened():
                 ret, frame = cap.read()
                 if not ret: break
