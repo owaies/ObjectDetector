@@ -196,12 +196,14 @@ def detect():
 
 @app.route('/vqa', methods=['POST'])
 def vqa():
-    data = request.get_json()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'error': 'A JSON object is required.'}), 400
     question = data.get('question')
     input_filename = data.get('image_filename')
     unique_id = uuid.uuid4().hex
 
-    if not question or not input_filename:
+    if not isinstance(question, str) or not question.strip() or not isinstance(input_filename, str) or not input_filename:
         return jsonify({'error': 'Missing question or image filename.'}), 400
 
     try:
