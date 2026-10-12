@@ -205,6 +205,8 @@ def vqa():
 
     if not isinstance(question, str) or not question.strip() or not isinstance(input_filename, str) or not input_filename:
         return jsonify({'error': 'Missing question or image filename.'}), 400
+    if len(question) > 500:
+        return jsonify({'error': 'Question must be 500 characters or fewer.'}), 400
 
     try:
         safe_filename = secure_filename(input_filename)
