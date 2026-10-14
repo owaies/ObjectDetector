@@ -36,6 +36,7 @@ os.makedirs(AUDIO_FOLDER, exist_ok=True)
 # --- Load AI Models Once at Startup ---
 print("Loading AI models...")
 detection_model = YOLO('yolov8s-world.pt')
+DEFAULT_OBJECT_CLASSES = list(detection_model.names.values())
 vqa_processor = BlipProcessor.from_pretrained("Salesforce/blip-vqa-base")
 vqa_model = BlipForQuestionAnswering.from_pretrained("Salesforce/blip-vqa-base")
 print("All models loaded successfully.")
@@ -82,6 +83,15 @@ def detect():
         if file.filename == '': return "No selected file", 400
 
         user_input = request.form.get('objects', '').lower().strip()
+        if len(user_input) > 1000:
+            return 'Object filter is too long.', 400
+        target_objects = []
+        if user_input:
+            target_objects = list(dict.fromkeys(item.strip() for item in user_input.split(',') if item.strip()))
+            if not target_objects:
+                return 'Provide at least one non-empty object name.', 400
+            if len(target_objects) > 20 or any(len(item) > 80 for item in target_objects):
+                return 'Provide at most 20 object names, each no longer than 80 characters.', 400
         try:
             confidence_threshold = float(request.form.get('confidence', 0.25))
         except (TypeError, ValueError):
@@ -94,9 +104,9 @@ def detect():
         except ValueError as exc:
             return str(exc), 400
         
-        if user_input:
-            target_objects = [item.strip() for item in user_input.split(',')]
-            detection_model.set_classes(target_objects)
+        # YOLO-World keeps custom classes on the shared model instance.
+        # Reset defaults for requests that do not supply a custom class list.
+        detection_model.set_classes(target_objects if user_input else DEFAULT_OBJECT_CLASSES)
 
         unique_id = uuid.uuid4().hex
         original_filename = secure_filename(file.filename)
