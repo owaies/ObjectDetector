@@ -287,6 +287,7 @@ For VQA:
 ## ⚠️ Current implementation notes
 
 - The backend currently initializes `yolov8s-world.pt` directly, so the weight file needs to be present at runtime.
+- Uploaded files are limited to 16 MB, and decoded images/video frames are limited to 40 megapixels to reduce memory-exhaustion risk from oversized media.
 - The frontend exposes both **Bounding Box Detection** and **Instance Segmentation** controls, but the current `/detect` backend code shown in the repository performs YOLO detection and does not implement a separate segmentation inference path.
 - Video detection summarizes detected class names after processing rather than returning per-frame counts.
 - Uploaded and generated files are scheduled for deletion after approximately 15 minutes.
