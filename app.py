@@ -23,6 +23,7 @@ def add_security_headers(response):
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     return response
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+MAX_MEDIA_PIXELS = 40_000_000  # Bound decoded image/frame memory, not just upload bytes.
 UPLOAD_FOLDER = 'static/uploads/'
 OUTPUT_FOLDER = 'static/outputs/'
 AUDIO_FOLDER = 'static/audio/'
@@ -133,6 +134,9 @@ def detect():
             if fps <= 0 or width <= 0 or height <= 0:
                 cap.release()
                 return "Error: Could not read video metadata.", 400
+            if width * height > MAX_MEDIA_PIXELS:
+                cap.release()
+                return "Video frame dimensions exceed the 40-megapixel processing limit.", 413
             out = cv2.VideoWriter(output_filepath, fourcc, fps, (width, height))
             if not out.isOpened():
                 cap.release()
@@ -159,6 +163,11 @@ def detect():
                     image_pil = Image.frombytes(heif.mode, heif.size, heif.data, "raw")
                     image = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
                 except Exception as e: return f"Could not read image: {e}", 400
+            height, width = image.shape[:2]
+            if width <= 0 or height <= 0:
+                return "Image has invalid dimensions.", 400
+            if width * height > MAX_MEDIA_PIXELS:
+                return "Image dimensions exceed the 40-megapixel processing limit.", 413
             results = detection_model(image, conf=confidence_threshold)
             output_image = image.copy()
             for box in results[0].boxes:
