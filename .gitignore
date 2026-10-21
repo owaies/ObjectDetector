@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Model weights and generated media
+*.pt
+*.onnx
+uploads/
+outputs/
+temp/
+tmp/
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+
+# Test and tooling artifacts
+.pytest_cache/
+.coverage*
+htmlcov/
+.vscode/
+.idea/
+.DS_Store
