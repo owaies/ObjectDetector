@@ -39,6 +39,8 @@ os.makedirs(AUDIO_FOLDER, exist_ok=True)
 print("Loading AI models...")
 detection_model = YOLO('yolov8s-world.pt')
 DEFAULT_OBJECT_CLASSES = list(detection_model.names.values())
+# YOLO-World class configuration is mutable shared state.
+detection_lock = threading.Lock()
 vqa_processor = BlipProcessor.from_pretrained("Salesforce/blip-vqa-base")
 vqa_model = BlipForQuestionAnswering.from_pretrained("Salesforce/blip-vqa-base")
 print("All models loaded successfully.")
@@ -79,140 +81,144 @@ def health():
 
 @app.route('/detect', methods=['POST'])
 def detect():
-    try:
-        if 'image' not in request.files: return "No file part", 400
-        file = request.files['image']
-        if file.filename == '': return "No selected file", 400
-
-        user_input = request.form.get('objects', '').lower().strip()
-        if len(user_input) > 1000:
-            return 'Object filter is too long.', 400
-        target_objects = []
-        if user_input:
-            target_objects = list(dict.fromkeys(item.strip() for item in user_input.split(',') if item.strip()))
-            if not target_objects:
-                return 'Provide at least one non-empty object name.', 400
-            if len(target_objects) > 20 or any(len(item) > 80 for item in target_objects):
-                return 'Provide at most 20 object names, each no longer than 80 characters.', 400
+    # YOLO-World stores custom class names on the shared model instance.
+    # Serialize the complete detection request so another request cannot change
+    # the classes between configuration, inference, and label lookup.
+    with detection_lock:
         try:
-            confidence_threshold = float(request.form.get('confidence', 0.25))
-        except (TypeError, ValueError):
-            return 'Confidence must be a number between 0 and 1.', 400
-        if not 0.0 <= confidence_threshold <= 1.0:
-            return 'Confidence must be between 0 and 1.', 400
-        box_color_hex = request.form.get('color', '#FFFF00')
-        try:
-            box_color_bgr = hex_to_bgr(box_color_hex)
-        except ValueError as exc:
-            return str(exc), 400
-        
-        # YOLO-World keeps custom classes on the shared model instance.
-        # Reset defaults for requests that do not supply a custom class list.
-        detection_model.set_classes(target_objects if user_input else DEFAULT_OBJECT_CLASSES)
+            if 'image' not in request.files: return "No file part", 400
+            file = request.files['image']
+            if file.filename == '': return "No selected file", 400
 
-        unique_id = uuid.uuid4().hex
-        original_filename = secure_filename(file.filename)
-        if not original_filename:
-            return "Invalid filename.", 400
-        allowed_image_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.heic', '.heif'}
-        is_video = is_video_file(original_filename)
-        if not is_video and os.path.splitext(original_filename)[1].lower() not in allowed_image_exts:
-            return "Unsupported image format.", 400
-        input_filename = f"{unique_id}_{original_filename}"
-        input_filepath = os.path.join(app.config['UPLOAD_FOLDER'], input_filename)
-        file.save(input_filepath)
+            user_input = request.form.get('objects', '').lower().strip()
+            if len(user_input) > 1000:
+                return 'Object filter is too long.', 400
+            target_objects = []
+            if user_input:
+                target_objects = list(dict.fromkeys(item.strip() for item in user_input.split(',') if item.strip()))
+                if not target_objects:
+                    return 'Provide at least one non-empty object name.', 400
+                if len(target_objects) > 20 or any(len(item) > 80 for item in target_objects):
+                    return 'Provide at most 20 object names, each no longer than 80 characters.', 400
+            try:
+                confidence_threshold = float(request.form.get('confidence', 0.25))
+            except (TypeError, ValueError):
+                return 'Confidence must be a number between 0 and 1.', 400
+            if not 0.0 <= confidence_threshold <= 1.0:
+                return 'Confidence must be between 0 and 1.', 400
+            box_color_hex = request.form.get('color', '#FFFF00')
+            try:
+                box_color_bgr = hex_to_bgr(box_color_hex)
+            except ValueError as exc:
+                return str(exc), 400
+            
+            # YOLO-World keeps custom classes on the shared model instance.
+            # Reset defaults for requests that do not supply a custom class list.
+            detection_model.set_classes(target_objects if user_input else DEFAULT_OBJECT_CLASSES)
 
-        detection_counts = defaultdict(int)
-        output_filename = f"{unique_id}_output.mp4" if is_video else f"{unique_id}_output.jpg"
-        output_filepath = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
+            unique_id = uuid.uuid4().hex
+            original_filename = secure_filename(file.filename)
+            if not original_filename:
+                return "Invalid filename.", 400
+            allowed_image_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.heic', '.heif'}
+            is_video = is_video_file(original_filename)
+            if not is_video and os.path.splitext(original_filename)[1].lower() not in allowed_image_exts:
+                return "Unsupported image format.", 400
+            input_filename = f"{unique_id}_{original_filename}"
+            input_filepath = os.path.join(app.config['UPLOAD_FOLDER'], input_filename)
+            file.save(input_filepath)
 
-        if is_video:
-            cap = cv2.VideoCapture(input_filepath)
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            if not math.isfinite(fps) or fps <= 0 or width <= 0 or height <= 0:
-                cap.release()
-                return "Error: Could not read video metadata.", 400
-            if width * height > MAX_MEDIA_PIXELS:
-                cap.release()
-                return "Video frame dimensions exceed the 40-megapixel processing limit.", 413
-            out = cv2.VideoWriter(output_filepath, fourcc, fps, (width, height))
-            if not out.isOpened():
-                cap.release()
-                if os.path.exists(output_filepath):
-                    os.remove(output_filepath)
-                return "Error: Could not initialize video writer.", 500
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret: break
-                results = detection_model(frame, stream=True, conf=confidence_threshold)
-                for r in results:
-                    frame = r.plot(colors=[box_color_bgr] * 80, labels=True)
-                    if r.boxes:
-                        for box in r.boxes:
-                            detection_counts[detection_model.names[int(box.cls[0])].lower()] += 1
-                out.write(frame)
-            cap.release(); out.release()
-            detection_counts = {k: "found" for k in detection_counts.keys()}
-        else:
-            image = cv2.imread(input_filepath)
-            if image is None:
-                try:
-                    heif = pi_heif.read_heif(input_filepath)
-                    image_pil = Image.frombytes(heif.mode, heif.size, heif.data, "raw")
-                    image = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
-                except Exception as e: return f"Could not read image: {e}", 400
-            height, width = image.shape[:2]
-            if width <= 0 or height <= 0:
-                return "Image has invalid dimensions.", 400
-            if width * height > MAX_MEDIA_PIXELS:
-                return "Image dimensions exceed the 40-megapixel processing limit.", 413
-            results = detection_model(image, conf=confidence_threshold)
-            output_image = image.copy()
-            for box in results[0].boxes:
-                class_name = detection_model.names[int(box.cls[0])]
-                xmin, ymin, xmax, ymax = map(int, box.xyxy[0])
-                label = f"{class_name}: {box.conf[0]:.2f}"
-                detection_counts[class_name.lower()] += 1
-                cv2.rectangle(output_image, (xmin, ymin), (xmax, ymax), box_color_bgr, 2)
-                label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
-                cv2.rectangle(output_image, (xmin, ymin), (xmin + label_size[0] + 10, ymin + label_size[1] + 15), (0,0,0), -1)
-                cv2.putText(output_image, label, (xmin + 5, ymin + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color_bgr, 2)
-            cv2.imwrite(output_filepath, output_image)
-        
-        final_announcement = "Processing complete."
-        if not is_video:
-            if detection_counts:
-                # --- THIS IS THE CORRECTED LINE ---
-                announcements = [f"{c} {('people' if n == 'person' else n + 's') if c > 1 else n}" for n, c in detection_counts.items()]
-                final_announcement = "I found " + ", and ".join(announcements)
-            else: final_announcement = "I could not find any of the requested objects."
-        
-        audio_url = None
-        audio_filepath = ''
-        try:
-            tts = gTTS(text=final_announcement, lang='en')
-            audio_filename = f"{unique_id}_speech.mp3"
-            audio_filepath = os.path.join(app.config['AUDIO_FOLDER'], audio_filename)
-            tts.save(audio_filepath)
-            audio_url = url_for('static', filename=f'audio/{audio_filename}')
-        except Exception as e: print(f"Error with gTTS: {e}")
+            detection_counts = defaultdict(int)
+            output_filename = f"{unique_id}_output.mp4" if is_video else f"{unique_id}_output.jpg"
+            output_filepath = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
 
-        schedule_cleanup([input_filepath, output_filepath, audio_filepath])
+            if is_video:
+                cap = cv2.VideoCapture(input_filepath)
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                fps = cap.get(cv2.CAP_PROP_FPS)
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                if not math.isfinite(fps) or fps <= 0 or width <= 0 or height <= 0:
+                    cap.release()
+                    return "Error: Could not read video metadata.", 400
+                if width * height > MAX_MEDIA_PIXELS:
+                    cap.release()
+                    return "Video frame dimensions exceed the 40-megapixel processing limit.", 413
+                out = cv2.VideoWriter(output_filepath, fourcc, fps, (width, height))
+                if not out.isOpened():
+                    cap.release()
+                    if os.path.exists(output_filepath):
+                        os.remove(output_filepath)
+                    return "Error: Could not initialize video writer.", 500
+                while cap.isOpened():
+                    ret, frame = cap.read()
+                    if not ret: break
+                    results = detection_model(frame, stream=True, conf=confidence_threshold)
+                    for r in results:
+                        frame = r.plot(colors=[box_color_bgr] * 80, labels=True)
+                        if r.boxes:
+                            for box in r.boxes:
+                                detection_counts[detection_model.names[int(box.cls[0])].lower()] += 1
+                    out.write(frame)
+                cap.release(); out.release()
+                detection_counts = {k: "found" for k in detection_counts.keys()}
+            else:
+                image = cv2.imread(input_filepath)
+                if image is None:
+                    try:
+                        heif = pi_heif.read_heif(input_filepath)
+                        image_pil = Image.frombytes(heif.mode, heif.size, heif.data, "raw")
+                        image = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
+                    except Exception as e: return f"Could not read image: {e}", 400
+                height, width = image.shape[:2]
+                if width <= 0 or height <= 0:
+                    return "Image has invalid dimensions.", 400
+                if width * height > MAX_MEDIA_PIXELS:
+                    return "Image dimensions exceed the 40-megapixel processing limit.", 413
+                results = detection_model(image, conf=confidence_threshold)
+                output_image = image.copy()
+                for box in results[0].boxes:
+                    class_name = detection_model.names[int(box.cls[0])]
+                    xmin, ymin, xmax, ymax = map(int, box.xyxy[0])
+                    label = f"{class_name}: {box.conf[0]:.2f}"
+                    detection_counts[class_name.lower()] += 1
+                    cv2.rectangle(output_image, (xmin, ymin), (xmax, ymax), box_color_bgr, 2)
+                    label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+                    cv2.rectangle(output_image, (xmin, ymin), (xmin + label_size[0] + 10, ymin + label_size[1] + 15), (0,0,0), -1)
+                    cv2.putText(output_image, label, (xmin + 5, ymin + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color_bgr, 2)
+                cv2.imwrite(output_filepath, output_image)
+            
+            final_announcement = "Processing complete."
+            if not is_video:
+                if detection_counts:
+                    # --- THIS IS THE CORRECTED LINE ---
+                    announcements = [f"{c} {('people' if n == 'person' else n + 's') if c > 1 else n}" for n, c in detection_counts.items()]
+                    final_announcement = "I found " + ", and ".join(announcements)
+                else: final_announcement = "I could not find any of the requested objects."
+            
+            audio_url = None
+            audio_filepath = ''
+            try:
+                tts = gTTS(text=final_announcement, lang='en')
+                audio_filename = f"{unique_id}_speech.mp3"
+                audio_filepath = os.path.join(app.config['AUDIO_FOLDER'], audio_filename)
+                tts.save(audio_filepath)
+                audio_url = url_for('static', filename=f'audio/{audio_filename}')
+            except Exception as e: print(f"Error with gTTS: {e}")
 
-        return render_template('results.html', 
-                               is_video=is_video,
-                               input_url=url_for('static', filename=f'uploads/{input_filename}'), 
-                               input_filename=input_filename,
-                               output_url=url_for('static', filename=f'outputs/{output_filename}'),
-                               detection_summary=dict(detection_counts),
-                               audio_url=audio_url)
-    except Exception as e:
-        import traceback
-        print(f"!!!!!!!! An error occurred in the main detect route: !!!!!!!!\n{traceback.format_exc()}")
-        return "An internal error occurred.", 500
+            schedule_cleanup([input_filepath, output_filepath, audio_filepath])
+
+            return render_template('results.html', 
+                                   is_video=is_video,
+                                   input_url=url_for('static', filename=f'uploads/{input_filename}'), 
+                                   input_filename=input_filename,
+                                   output_url=url_for('static', filename=f'outputs/{output_filename}'),
+                                   detection_summary=dict(detection_counts),
+                                   audio_url=audio_url)
+        except Exception as e:
+            import traceback
+            print(f"!!!!!!!! An error occurred in the main detect route: !!!!!!!!\n{traceback.format_exc()}")
+            return "An internal error occurred.", 500
 
 @app.route('/vqa', methods=['POST'])
 def vqa():
