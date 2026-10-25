@@ -11,3 +11,6 @@ Use small, non-sensitive fixtures to validate the image and video processing flo
 7. Check the browser console and server log for unexpected exceptions.
 
 Record fixture dimensions, processing time, and whether the test used CPU or GPU inference.
+
+8. Submit two detection requests concurrently with different custom object lists. Confirm each response's labels correspond only to its own requested classes; a concurrent request must not change the class names used for another request's inference or label lookup.
+9. Repeat the concurrent-request check with one request using the default object classes and the other using custom classes, then verify that a subsequent default request uses the complete default class list.
