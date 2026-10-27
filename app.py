@@ -81,6 +81,10 @@ def health():
 
 @app.route('/detect', methods=['POST'])
 def detect():
+    input_filepath = None
+    output_filepath = None
+    audio_filepath = None
+    success = False
     # YOLO-World stores custom class names on the shared model instance.
     # Serialize the complete detection request so another request cannot change
     # the classes between configuration, inference, and label lookup.
@@ -208,17 +212,24 @@ def detect():
 
             schedule_cleanup([input_filepath, output_filepath, audio_filepath])
 
-            return render_template('results.html', 
-                                   is_video=is_video,
-                                   input_url=url_for('static', filename=f'uploads/{input_filename}'), 
-                                   input_filename=input_filename,
-                                   output_url=url_for('static', filename=f'outputs/{output_filename}'),
-                                   detection_summary=dict(detection_counts),
-                                   audio_url=audio_url)
+            result_page = render_template('results.html', 
+                                           is_video=is_video,
+                                           input_url=url_for('static', filename=f'uploads/{input_filename}'), 
+                                           input_filename=input_filename,
+                                           output_url=url_for('static', filename=f'outputs/{output_filename}'),
+                                           detection_summary=dict(detection_counts),
+                                           audio_url=audio_url)
+            success = True
+            return result_page
         except Exception as e:
             import traceback
             print(f"!!!!!!!! An error occurred in the main detect route: !!!!!!!!\n{traceback.format_exc()}")
             return "An internal error occurred.", 500
+        finally:
+            if not success:
+                cleanup_paths = [path for path in (input_filepath, output_filepath, audio_filepath) if path]
+                if cleanup_paths:
+                    schedule_cleanup(cleanup_paths)
 
 @app.route('/vqa', methods=['POST'])
 def vqa():
