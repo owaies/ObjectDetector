@@ -250,7 +250,13 @@ def vqa():
         if not safe_filename or safe_filename != input_filename:
             return jsonify({'error': 'Invalid image filename.'}), 400
         image_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
-        raw_image = Image.open(image_path).convert('RGB')
+        with Image.open(image_path) as source_image:
+            width, height = source_image.size
+            if width <= 0 or height <= 0:
+                return jsonify({'error': 'Image has invalid dimensions.'}), 400
+            if width * height > MAX_MEDIA_PIXELS:
+                return jsonify({'error': 'Image dimensions exceed the 40-megapixel processing limit.'}), 413
+            raw_image = source_image.convert('RGB')
 
         inputs = vqa_processor(raw_image, question.strip(), return_tensors="pt")
         out = vqa_model.generate(**inputs)
