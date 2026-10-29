@@ -14,3 +14,5 @@ Record fixture dimensions, processing time, and whether the test used CPU or GPU
 
 8. Submit two detection requests concurrently with different custom object lists. Confirm each response's labels correspond only to its own requested classes; a concurrent request must not change the class names used for another request's inference or label lookup.
 9. Repeat the concurrent-request check with one request using the default object classes and the other using custom classes, then verify that a subsequent default request uses the complete default class list.
+
+10. Submit a valid uploaded image to the VQA endpoint, then repeat with an image whose decoded dimensions exceed 40 megapixels. Confirm the oversized image receives HTTP 413 before image conversion or model inference.
