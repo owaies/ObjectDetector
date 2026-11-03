@@ -101,7 +101,9 @@ For an uploaded image, the application can receive a natural-language question, 
 
 ```text
 ObjectDetector/
+├── .github/workflows/      # Repository checks
 ├── app.py                  # Flask application + AI inference routes
+├── docs/                   # Validation and operational notes
 ├── requirements.txt        # Python dependencies
 ├── README.md               # Project documentation
 └── templates/
@@ -109,7 +111,7 @@ ObjectDetector/
     └── results.html        # Results presentation
 ```
 
-The current repository contains these application files on the `main` branch. citeturn3file0
+The repository includes the Flask application, its templates, documentation, and project configuration.
 
 ---
 
@@ -125,7 +127,7 @@ The current repository contains these application files on the `main` branch. �
 - **gTTS** for text-to-speech
 - **Bootstrap 5** for the browser UI
 
-The dependency list is defined in `requirements.txt`. citeturn5file0
+Dependencies are listed in `requirements.txt`.
 
 ---
 
@@ -327,10 +329,9 @@ Speech generation is handled separately from inference. If gTTS fails, the appli
 
 ## 🔐 Security & production considerations
 
-Before exposing this application publicly, consider adding:
+The current backend already enforces a 16 MB request limit, supported upload extensions, and a 40-megapixel decoded image/frame limit. Before exposing this application publicly, consider adding:
 
-- Upload size and file-type validation
-- Authentication/rate limiting
+- Authentication and rate limiting
 - Safer isolation for untrusted uploads
 - Explicit resource limits for video processing
 - Production WSGI serving instead of Flask's development server
