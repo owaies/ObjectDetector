@@ -20,7 +20,7 @@
         <div class="card">
             <div class="card-body p-4 p-md-5">
                 <h1 class="text-center mb-3">AI Vision Suite 🔬✨</h1>
-                <p class="text-center text-muted mb-4">Upload a file and choose an analysis mode.</p>
+                <p class="text-center text-muted mb-4">Upload an image or video for object detection.</p>
 
                 <form id="detection-form" action="/detect" method="post" enctype="multipart/form-data">
 
@@ -33,16 +33,17 @@
                             </label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="detection_mode" id="segmentRadio" value="segment">
+                            <input class="form-check-input" type="radio" name="detection_mode" id="segmentRadio" value="segment" disabled aria-describedby="segment-help">
                             <label class="form-check-label" for="segmentRadio">
-                                <b>Instance Segmentation</b> (Precise)
+                                <b>Instance Segmentation</b> (Coming soon)
                             </label>
+                            <small id="segment-help" class="form-text text-muted">The current backend supports bounding-box detection only.</small>
                         </div>
                     </fieldset>
 
                     <div class="mb-3">
                         <label for="image" class="form-label"><b>2. Choose an Image or Video</b></label>
-                        <input type="file" class="form-control" id="image" name="image" accept="image/*,video/*" required>
+                        <input type="file" class="form-control" id="image" name="image" accept=".jpg,.jpeg,.png,.bmp,.heic,.heif,.mp4,.mov,.avi,.mkv,.webm" required>
                     </div>
 
                     <div class="mb-3" id="objects-container">
@@ -56,14 +57,14 @@
                             <input type="range" class="form-range" id="confidence" name="confidence" min="0.1" max="0.9" step="0.05" value="0.25">
                         </div>
                         <div class="col-md-6 mb-4" id="color-picker-container">
-                            <label for="color" class="form-label"><b>5. Box/Mask Color</b></label>
+                            <label for="color" class="form-label"><b>5. Box Color</b></label>
                             <input type="color" class="form-control form-control-color" id="color" name="color" value="#00FF00" title="Choose your color">
                         </div>
                     </div>
 
                     <div class="d-grid">
                         <button id="submit-btn" type="submit" class="btn btn-primary btn-lg">
-                            <span id="btn-text">Analyze</span>
+                            <span id="btn-text" aria-live="polite">Analyze</span>
                             <span id="spinner" class="spinner-border spinner-border-sm d-none" role="status" aria-label="Processing"></span>
                         </button>
                     </div>
