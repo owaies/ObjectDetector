@@ -52,9 +52,9 @@ The project supports image and video analysis, configurable confidence threshold
 | ❓ **Visual Q&A** | Ask questions about an uploaded image using Salesforce BLIP VQA. |
 | 🔊 **Text-to-Speech** | Convert detection summaries and VQA answers to speech with gTTS. |
 | 🧹 **Automatic Cleanup** | Temporary uploaded, output, and audio files are scheduled for cleanup after 15 minutes. |
-| 📱 **Interactive UI** | Bootstrap-based interface with mode controls, confidence slider, color picker, and processing feedback. |
+| 📱 **Interactive UI** | Bootstrap-based interface with object filters, a confidence slider, box-color selection, and processing feedback. |
 
-The implemented backend exposes `/`, `/detect`, and `/vqa` routes, while the frontend provides detection-mode controls and an interactive confidence slider.
+The implemented backend exposes `/`, `/detect`, and `/vqa` routes. The frontend provides object filters and an interactive confidence slider; unsupported instance segmentation is shown as a disabled coming-soon option.
 
 ---
 
@@ -290,7 +290,7 @@ For VQA:
 
 - The backend currently initializes `yolov8s-world.pt` directly, so the weight file needs to be present at runtime.
 - Uploaded files are limited to 16 MB, and decoded images/video frames are limited to 40 megapixels to reduce memory-exhaustion risk from oversized media.
-- The frontend exposes both **Bounding Box Detection** and **Instance Segmentation** controls, but the current `/detect` backend code shown in the repository performs YOLO detection and does not implement a separate segmentation inference path.
+- **Bounding Box Detection** is the only selectable analysis mode. Instance Segmentation remains visible as a disabled coming-soon option because the current `/detect` backend does not implement a separate segmentation inference path.
 - Video detection summarizes detected class names after processing rather than returning per-frame counts.
 - Uploaded and generated files are scheduled for deletion after approximately 15 minutes.
 - gTTS requires network access when generating speech audio.

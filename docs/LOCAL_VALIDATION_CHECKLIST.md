@@ -21,3 +21,10 @@ Use this checklist before changing the detection pipeline.
 
 ## Regression evidence
 Record the input type, confidence threshold, model availability, response status, and any user-visible error for each regression.
+
+
+## Analysis mode and file picker
+- Confirm Bounding Box Detection is selected by default.
+- Confirm Instance Segmentation is visibly marked as coming soon and cannot be selected.
+- Confirm the file picker lists only the image and video extensions accepted by the backend.
+- Confirm the Analyze button announces its processing-state text to assistive technology.
