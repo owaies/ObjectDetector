@@ -138,33 +138,36 @@ def detect():
 
             if is_video:
                 cap = cv2.VideoCapture(input_filepath)
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                fps = cap.get(cv2.CAP_PROP_FPS)
-                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                if not math.isfinite(fps) or fps <= 0 or width <= 0 or height <= 0:
+                out = None
+                try:
+                    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                    fps = cap.get(cv2.CAP_PROP_FPS)
+                    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    if not math.isfinite(fps) or fps <= 0 or width <= 0 or height <= 0:
+                        return "Error: Could not read video metadata.", 400
+                    if width * height > MAX_MEDIA_PIXELS:
+                        return "Video frame dimensions exceed the 40-megapixel processing limit.", 413
+                    out = cv2.VideoWriter(output_filepath, fourcc, fps, (width, height))
+                    if not out.isOpened():
+                        if os.path.exists(output_filepath):
+                            os.remove(output_filepath)
+                        return "Error: Could not initialize video writer.", 500
+                    while cap.isOpened():
+                        ret, frame = cap.read()
+                        if not ret:
+                            break
+                        results = detection_model(frame, stream=True, conf=confidence_threshold)
+                        for result in results:
+                            frame = result.plot(colors=[box_color_bgr] * 80, labels=True)
+                            if result.boxes:
+                                for box in result.boxes:
+                                    detection_counts[detection_model.names[int(box.cls[0])].lower()] += 1
+                        out.write(frame)
+                finally:
                     cap.release()
-                    return "Error: Could not read video metadata.", 400
-                if width * height > MAX_MEDIA_PIXELS:
-                    cap.release()
-                    return "Video frame dimensions exceed the 40-megapixel processing limit.", 413
-                out = cv2.VideoWriter(output_filepath, fourcc, fps, (width, height))
-                if not out.isOpened():
-                    cap.release()
-                    if os.path.exists(output_filepath):
-                        os.remove(output_filepath)
-                    return "Error: Could not initialize video writer.", 500
-                while cap.isOpened():
-                    ret, frame = cap.read()
-                    if not ret: break
-                    results = detection_model(frame, stream=True, conf=confidence_threshold)
-                    for r in results:
-                        frame = r.plot(colors=[box_color_bgr] * 80, labels=True)
-                        if r.boxes:
-                            for box in r.boxes:
-                                detection_counts[detection_model.names[int(box.cls[0])].lower()] += 1
-                    out.write(frame)
-                cap.release(); out.release()
+                    if out is not None:
+                        out.release()
                 detection_counts = {k: "found" for k in detection_counts.keys()}
             else:
                 image = cv2.imread(input_filepath)
