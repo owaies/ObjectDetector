@@ -103,6 +103,7 @@ For an uploaded image, the application can receive a natural-language question, 
 ObjectDetector/
 ├── .github/workflows/      # Repository checks
 ├── app.py                  # Flask application + AI inference routes
+├── media_output.py         # Processed image/video output checks
 ├── docs/                   # Validation and operational notes
 ├── requirements.txt        # Python dependencies
 ├── README.md               # Project documentation
@@ -181,6 +182,18 @@ http://localhost:7860
 ```
 
 > 💡 On first startup, the BLIP VQA processor/model are loaded from the Hugging Face model `Salesforce/blip-vqa-base`.
+
+---
+
+## 🧪 Automated tests
+
+The lightweight media-output checks run without downloading the YOLO or BLIP models:
+
+```bash
+python -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+These tests cover failed image writes, missing or empty output files, and videos that contain no readable frames.
 
 ---
 
@@ -350,7 +363,7 @@ Potential next steps for the project:
 - [ ] Display richer per-class statistics
 - [ ] Add downloadable result bundles
 - [ ] Add REST API documentation with OpenAPI
-- [ ] Add automated tests
+- [x] Add focused automated tests for media output validation
 - [ ] Add GPU/CPU performance information
 - [ ] Add deployment instructions
 - [ ] Add sample screenshots and demo media

@@ -19,3 +19,6 @@ Record fixture dimensions, processing time, and whether the test used CPU or GPU
 
 11. Force a video inference error after at least one frame has been read. Confirm both the capture and writer are released before temporary-file cleanup is scheduled, and verify a later request can open another video.
 12. Submit a video with invalid metadata and a video whose writer cannot be initialized. Confirm the capture is released on both early-return paths.
+
+13. Simulate `cv2.imwrite` returning false and confirm the request reports a processing failure instead of rendering a result page with a missing image.
+14. Submit a video that opens but yields no readable frames. Confirm the endpoint returns HTTP 400, releases the capture and writer, and does not render an empty output video.
