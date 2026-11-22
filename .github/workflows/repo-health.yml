@@ -32,6 +32,10 @@ jobs:
         shell: bash
         run: python -m compileall -q .
 
+      - name: Run lightweight Python unit tests
+        if: ${{ hashFiles('tests/test_*.py') != '' }}
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+
       - name: Validate PHP sources
         if: ${{ hashFiles('**/*.php') != '' }}
         shell: bash
