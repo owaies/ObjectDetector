@@ -13,6 +13,7 @@ from gtts import gTTS
 import pi_heif
 from PIL import Image
 from transformers import BlipProcessor, BlipForQuestionAnswering
+from media_output import validate_video_output, write_image_output
 
 # --- Initialize App and Configure Folders ---
 app = Flask(__name__)
@@ -139,6 +140,7 @@ def detect():
             if is_video:
                 cap = cv2.VideoCapture(input_filepath)
                 out = None
+                frames_written = 0
                 try:
                     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
                     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -164,10 +166,15 @@ def detect():
                                 for box in result.boxes:
                                     detection_counts[detection_model.names[int(box.cls[0])].lower()] += 1
                         out.write(frame)
+                        frames_written += 1
                 finally:
                     cap.release()
                     if out is not None:
                         out.release()
+                try:
+                    validate_video_output(output_filepath, frames_written)
+                except ValueError as exc:
+                    return f"Error: {exc}", 400
                 detection_counts = {k: "found" for k in detection_counts.keys()}
             else:
                 image = cv2.imread(input_filepath)
@@ -193,7 +200,7 @@ def detect():
                     label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
                     cv2.rectangle(output_image, (xmin, ymin), (xmin + label_size[0] + 10, ymin + label_size[1] + 15), (0,0,0), -1)
                     cv2.putText(output_image, label, (xmin + 5, ymin + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color_bgr, 2)
-                cv2.imwrite(output_filepath, output_image)
+                write_image_output(output_filepath, output_image, cv2.imwrite)
             
             final_announcement = "Processing complete."
             if not is_video:
