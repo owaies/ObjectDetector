@@ -103,6 +103,7 @@ For an uploaded image, the application can receive a natural-language question, 
 ObjectDetector/
 ├── .github/workflows/      # Repository checks
 ├── app.py                  # Flask application + AI inference routes
+├── media_input.py          # Safe HEIF decoding and input validation
 ├── media_output.py         # Processed image/video output checks
 ├── docs/                   # Validation and operational notes
 ├── requirements.txt        # Python dependencies
@@ -193,7 +194,7 @@ The lightweight media-output checks run without downloading the YOLO or BLIP mod
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-These tests cover failed image writes, missing or empty output files, and videos that contain no readable frames.
+These tests cover safe HEIF decoding errors, failed image writes, missing or empty output files, and videos that contain no readable frames.
 
 ---
 
