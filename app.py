@@ -13,6 +13,7 @@ from gtts import gTTS
 import pi_heif
 from PIL import Image
 from transformers import BlipProcessor, BlipForQuestionAnswering
+from media_input import decode_heif_image
 from media_output import validate_video_output, write_image_output
 
 # --- Initialize App and Configure Folders ---
@@ -180,10 +181,20 @@ def detect():
                 image = cv2.imread(input_filepath)
                 if image is None:
                     try:
-                        heif = pi_heif.read_heif(input_filepath)
-                        image_pil = Image.frombytes(heif.mode, heif.size, heif.data, "raw")
-                        image = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
-                    except Exception as e: return f"Could not read image: {e}", 400
+                        image = decode_heif_image(
+                            input_filepath,
+                            reader=pi_heif.read_heif,
+                            image_factory=Image.frombytes,
+                            converter=lambda pil_image: cv2.cvtColor(
+                                np.array(pil_image), cv2.COLOR_RGB2BGR
+                            ),
+                        )
+                    except ValueError:
+                        app.logger.warning(
+                            "Could not decode uploaded HEIF image.",
+                            exc_info=True,
+                        )
+                        return "Could not read image. Please upload a valid supported image.", 400
                 height, width = image.shape[:2]
                 if width <= 0 or height <= 0:
                     return "Image has invalid dimensions.", 400
