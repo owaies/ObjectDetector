@@ -22,3 +22,6 @@ Record fixture dimensions, processing time, and whether the test used CPU or GPU
 
 13. Simulate `cv2.imwrite` returning false and confirm the request reports a processing failure instead of rendering a result page with a missing image.
 14. Submit a video that opens but yields no readable frames. Confirm the endpoint returns HTTP 400, releases the capture and writer, and does not render an empty output video.
+
+15. Upload a corrupt file with a supported HEIF extension. Confirm the endpoint returns a generic HTTP 400 message without exposing decoder paths or library exception details; the detailed exception should remain in server logs.
+16. Upload a valid HEIF image and confirm it is converted to the expected BGR image before detection, with a normal annotated result.
