@@ -1,7 +1,7 @@
 import unittest
 from types import SimpleNamespace
 
-from media_input import decode_heif_image
+from media_input import ImageTooLargeError, decode_heif_image
 
 
 class MediaInputTests(unittest.TestCase):
@@ -62,6 +62,42 @@ class MediaInputTests(unittest.TestCase):
                 ),
                 converter=lambda image: image,
             )
+
+
+    def test_rejects_oversized_heif_before_creating_image_buffer(self):
+        heif = SimpleNamespace(mode="RGB", size=(5001, 8000), data=b"large-image")
+        factory_called = False
+
+        def image_factory(*_args):
+            nonlocal factory_called
+            factory_called = True
+            return object()
+
+        with self.assertRaisesRegex(ImageTooLargeError, "40-megapixel"):
+            decode_heif_image(
+                "large.heic",
+                reader=lambda _path: heif,
+                image_factory=image_factory,
+                converter=lambda image: image,
+                max_pixels=40_000_000,
+            )
+
+        self.assertFalse(factory_called)
+
+    def test_accepts_heif_at_the_configured_pixel_limit(self):
+        heif = SimpleNamespace(mode="RGB", size=(4000, 10000), data=b"boundary-image")
+        decoded_image = object()
+        converted_image = object()
+
+        result = decode_heif_image(
+            "boundary.heic",
+            reader=lambda _path: heif,
+            image_factory=lambda *_args: decoded_image,
+            converter=lambda image: converted_image if image is decoded_image else None,
+            max_pixels=40_000_000,
+        )
+
+        self.assertIs(result, converted_image)
 
 
 if __name__ == "__main__":
