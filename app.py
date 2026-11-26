@@ -13,7 +13,7 @@ from gtts import gTTS
 import pi_heif
 from PIL import Image
 from transformers import BlipProcessor, BlipForQuestionAnswering
-from media_input import decode_heif_image
+from media_input import ImageTooLargeError, decode_heif_image
 from media_output import validate_video_output, write_image_output
 
 # --- Initialize App and Configure Folders ---
@@ -188,7 +188,10 @@ def detect():
                             converter=lambda pil_image: cv2.cvtColor(
                                 np.array(pil_image), cv2.COLOR_RGB2BGR
                             ),
+                            max_pixels=MAX_MEDIA_PIXELS,
                         )
+                    except ImageTooLargeError as exc:
+                        return str(exc), 413
                     except ValueError:
                         app.logger.warning(
                             "Could not decode uploaded HEIF image.",
