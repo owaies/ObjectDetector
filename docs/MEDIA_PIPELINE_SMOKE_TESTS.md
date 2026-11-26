@@ -25,3 +25,6 @@ Record fixture dimensions, processing time, and whether the test used CPU or GPU
 
 15. Upload a corrupt file with a supported HEIF extension. Confirm the endpoint returns a generic HTTP 400 message without exposing decoder paths or library exception details; the detailed exception should remain in server logs.
 16. Upload a valid HEIF image and confirm it is converted to the expected BGR image before detection, with a normal annotated result.
+
+17. Upload a HEIF image whose reported dimensions exceed 40 megapixels. Confirm the decoder helper rejects it before creating the PIL image buffer or running color conversion, returns HTTP 413, and does not invoke detection.
+18. Upload a HEIF image at the 40-megapixel boundary and confirm it proceeds through normal conversion and detection.
